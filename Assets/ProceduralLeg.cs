@@ -119,6 +119,11 @@ public class ProceduralLeg: MonoBehaviour
         }
     }
 
+    public void updateNewPos(Vector3 bodyPredict)
+    {
+        newPos = bodyPredict + root_transform.rotation * pos_offset;
+    }
+
     public void setDestination(Vector3 newDes)
     {
         oldPos = curPos;

@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
+using UnityEditor;
 using UnityEditor.Rendering;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -35,7 +36,12 @@ public class ProceduralWalk : MonoBehaviour
     public float  minSpeed = 1.0f;
     public float maxSpeed = 10.0f;
     public float minMoveHeight = 1.0f;
-    public float maxMoveHeight = 4.0f;
+    public float maxMoveHeight = 5.0f;
+    public float airTimeMax = 0.1f;
+    public float heightScale = 1.0f;
+    public float predicOffset = 0.0f;
+    public float acc = 2.0f;
+    public bool test = false;
     void Start()
     {
         m_transform = this.GetComponent<Transform>();
@@ -43,15 +49,23 @@ public class ProceduralWalk : MonoBehaviour
         stall = period / (float)legCount;
         initialCenterDis = GetCenterDis();
         stableRotationY = m_transform.eulerAngles.y;
-
+    }
+    private void OnDrawGizmos()
+    {
+        Handles.Label(m_transform.position + new Vector3(0f, 2.5f, 0f), "Speed");
+        Handles.Label(m_transform.position + new Vector3(0f, 2.0f, 0f), (movement.magnitude*speed).ToString());
     }
 
     private void Update()
     {
         UpdateParam();
-
+        AdjustHeight();
     }
 
+    private void AdjustHeight()
+    {
+        float height =( (airTime / airTimeMax) - 0.5f)* heightScale;
+     }
 
     private void UpdateParam()
     {
@@ -143,10 +157,10 @@ public class ProceduralWalk : MonoBehaviour
         movement = Locomote();
         m_transform.Translate(movement * speed * Time.deltaTime);
         movementWorld = m_transform.TransformDirection(movement);
-        float predicTime = legsList[0].moveTime + (period - legsList[0].moveTime) / 2f;
+        //float T1 = period - legsList[0].moveTime-legsList[0].moveTime;
+        float predicTime = predicOffset + legsList[0].moveTime + (period - legsList[0].moveTime) / 2f;
         Vector3 bodyPredict = m_transform.position + movementWorld * speed * predicTime;
-
-        if(m_state == BodyState.stall)
+        if (m_state == BodyState.stall)
         {
             if (CheckToMove(bodyPredict)) {
                 m_state = BodyState.move;
@@ -187,6 +201,11 @@ public class ProceduralWalk : MonoBehaviour
             {
                 legsList[i].MoveLeg(Time.fixedDeltaTime);
                 legsList[i].CheckTimer(period);
+                if ((legsList[i].lerp > 0.01f)&&(legsList[i].lerp < 0.99f)&&test)
+                {
+                    Vector3 curBodyPredic = m_transform.position + movementWorld * speed *(period -  predicTime *  legsList[i].lerp);
+                    legsList[i].updateNewPos(curBodyPredic);
+                }
             }
         }
     }
@@ -205,11 +224,11 @@ public class ProceduralWalk : MonoBehaviour
         }
         if (Input.GetKey(KeyCode.Space))
         {
-            speed +=Time.deltaTime;
+            speed +=Time.deltaTime*acc;
         }
         if (Input.GetKey(KeyCode.C))
         {
-            speed -= Time.deltaTime;
+            speed -= Time.deltaTime*acc;
         }
         speed = Mathf.Clamp(speed, 1f, 9f);
         //control movement
