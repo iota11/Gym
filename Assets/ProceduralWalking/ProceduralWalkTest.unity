@@ -345,6 +345,11 @@ PrefabInstance:
       propertyPath: speed
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 192268913812094471, guid: 3d429502c6706234b82d03514be13543,
+        type: 3}
+      propertyPath: predicOffset
+      value: -0.04
+      objectReference: {fileID: 0}
     - target: {fileID: 1971403226822035697, guid: 3d429502c6706234b82d03514be13543,
         type: 3}
       propertyPath: m_RootOrder
@@ -1989,6 +1994,11 @@ PrefabInstance:
         type: 3}
       propertyPath: speed
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 239166492981362415, guid: 810c4b5d11052fe4288aa10419416ca0,
+        type: 3}
+      propertyPath: predicOffset
+      value: -0.04
       objectReference: {fileID: 0}
     - target: {fileID: 1918946772915554329, guid: 810c4b5d11052fe4288aa10419416ca0,
         type: 3}
@@ -3946,13 +3956,18 @@ PrefabInstance:
     - target: {fileID: 1339552594884255392, guid: aa37331c7ada6004a98d73f82c63f8f7,
         type: 3}
       propertyPath: speed
-      value: 9
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 1339552594884255392, guid: aa37331c7ada6004a98d73f82c63f8f7,
         type: 3}
       propertyPath: m_transform
       value: 
       objectReference: {fileID: 1580927204}
+    - target: {fileID: 1339552594884255392, guid: aa37331c7ada6004a98d73f82c63f8f7,
+        type: 3}
+      propertyPath: predicOffset
+      value: -0.02
+      objectReference: {fileID: 0}
     - target: {fileID: 1339552594884255392, guid: aa37331c7ada6004a98d73f82c63f8f7,
         type: 3}
       propertyPath: testMovement.z
