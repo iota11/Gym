@@ -1709,7 +1709,7 @@ MonoBehaviour:
   minMoveHeight: 1
   maxMoveHeight: 5
   airTimeMax: 0.1
-  heightScale: 1
+  heightScale: 0.03
   predicOffset: -0.04
   acc: 2
   test: 1

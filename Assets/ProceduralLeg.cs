@@ -13,7 +13,8 @@ public enum LegState
 public class ProceduralLeg: MonoBehaviour
 {
     public Transform m_transform;
-    public Transform root_transform;
+    public ProceduralWalk body;
+    private Transform body_transform;
     public Transform end_transform;
     public float strideRatio = 1.0f;
     public float legLength = 1f;
@@ -30,6 +31,10 @@ public class ProceduralLeg: MonoBehaviour
     public float selfTimer = 0.0f;
     public bool istriggered = false;
     private Vector3 bodyToRootOffset;
+
+    public float VirtualHeight = 0.0f; //to messure the strength
+    public float virtualHeightOffset = 0.0f;
+    public float virtualHeightScale = 1.0f;
     //constructor
     public ProceduralLeg(Transform legTransform, float footHeightScale, float newlegLength)
     {
@@ -54,21 +59,23 @@ public class ProceduralLeg: MonoBehaviour
 
     private void Start()
     {
+        body_transform = body.m_transform;
         m_transform = this.GetComponent<Transform>();
         curPos = m_transform.position;
         oldPos = m_transform.position;
         initial_rotation = m_transform.localRotation;
-        pos_offset = m_transform.position - root_transform.position;
+        pos_offset = m_transform.position - body_transform.position;
         legStride =2* strideRatio * Mathf.Sqrt(Mathf.Pow(legLength, 2) - Mathf.Pow(end_transform.position.y, 2)); // may use ray cast insead
     }
 
     public void Update()
     {
-        //m_transform.position = root_transform.position +root_transform.rotation*pos_offset;
-        m_transform.localRotation = root_transform.localRotation * initial_rotation;
+        //m_transform.position = body_transform.position +body_transform.rotation*pos_offset;
+        m_transform.localRotation = body_transform.localRotation * initial_rotation;
         if (istriggered)
         {
             selfTimer += Time.deltaTime;
+            VirtualHeight = Mathf.Sin((2*Mathf.PI)/(body.period)* selfTimer) * virtualHeightScale;
         }
     }
 
@@ -83,7 +90,7 @@ public class ProceduralLeg: MonoBehaviour
 
     public Vector3 IdealLocation(Vector3 bodyPredict)
     {
-        Vector3 idealPlace = bodyPredict  + root_transform.rotation * pos_offset;
+        Vector3 idealPlace = bodyPredict  + body_transform.rotation * pos_offset;
         Vector3 test = curPos;
         Vector3 rayStartpoint =idealPlace + new Vector3(0f, 10f, 0f);
         int layerMask = 1 << 6;
@@ -121,7 +128,14 @@ public class ProceduralLeg: MonoBehaviour
 
     public void updateNewPos(Vector3 bodyPredict)
     {
-        newPos = bodyPredict + root_transform.rotation * pos_offset;
+        newPos = bodyPredict + body_transform.rotation * pos_offset;
+        int layerMask = 1 << 6;
+        RaycastHit hit;
+        Vector3 rayStartpoint = newPos + new Vector3(0f, 10f, 0f);
+        if (Physics.Raycast(rayStartpoint, new Vector3(0f, -1f, 0f), out hit, 20f, layerMask))
+        {
+            newPos = hit.point;
+        }
     }
 
     public void setDestination(Vector3 newDes)

@@ -331,7 +331,7 @@ MonoBehaviour:
   m_transform: {fileID: 0}
   root_transform: {fileID: 8279771401989149594}
   end_transform: {fileID: 8523190142303589354}
-  strideRatio: 0.7
+  strideRatio: 0.8
   legLength: 2.5
   legStride: 0
   m_state: 0
@@ -589,7 +589,7 @@ MonoBehaviour:
   m_transform: {fileID: 0}
   root_transform: {fileID: 8279771401989149594}
   end_transform: {fileID: 8430827516486064308}
-  strideRatio: 0.7
+  strideRatio: 0.8
   legLength: 2.5
   legStride: 0
   m_state: 0
@@ -925,7 +925,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5097689826922134115}
   m_LocalRotation: {x: 0.8049827, y: -0.050020136, z: -0.13918711, w: 0.57456744}
-  m_LocalPosition: {x: -0.016161684, y: 0.012720813, z: 0.002614489}
+  m_LocalPosition: {x: -0.0164, y: 0.0137, z: -0}
   m_LocalScale: {x: 0.9999991, y: 0.9999991, z: 0.9999998}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1290,7 +1290,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6934736636697793573}
   m_LocalRotation: {x: 0.0982643, y: 0.8138491, z: 0.56830806, w: 0.0708503}
-  m_LocalPosition: {x: -0.016371228, y: 0.012720812, z: 0.0001370567}
+  m_LocalPosition: {x: -0.0161, y: 0.0137, z: 0.0028}
   m_LocalScale: {x: -0.9999996, y: -0.999999, z: -0.9999999}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1546,9 +1546,9 @@ MonoBehaviour:
   minSpeed: 1
   maxSpeed: 7
   minMoveHeight: 2
-  maxMoveHeight: 10
-  airTimeMax: 0.2
-  heightScale: 6
+  maxMoveHeight: 12
+  airTimeMax: 1
+  heightScale: 0.05
   predicOffset: 0
   acc: 2
   test: 1

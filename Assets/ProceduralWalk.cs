@@ -1,5 +1,7 @@
+using Palmmedia.ReportGenerator.Core.Parser.Analysis;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Unity.VisualScripting;
 using UnityEditor;
 using UnityEditor.Rendering;
@@ -15,6 +17,10 @@ public enum BodyState
 public class ProceduralWalk : MonoBehaviour
 {
     public List<ProceduralLeg> legsList;
+    public Transform hipTransform;
+    private Quaternion hipInitialRotation;
+    public float shakeInfluence = 5.0f;
+
     public float period =1.2f;
     private float stall;
     public float airTime = 0.03f;
@@ -42,13 +48,20 @@ public class ProceduralWalk : MonoBehaviour
     public float predicOffset = 0.0f;
     public float acc = 2.0f;
     public bool test = false;
+    public bool showShaking = false;
+    //public Vector3 testV;
+
+    private float firstlegTstall = 0.0f;
+    private float initialPosY;
     void Start()
     {
         m_transform = this.GetComponent<Transform>();
+        initialPosY = m_transform.position.y;
         legCount = legsList.Count;
         stall = period / (float)legCount;
         initialCenterDis = GetCenterDis();
         stableRotationY = m_transform.eulerAngles.y;
+        hipInitialRotation = hipTransform.rotation;
     }
     private void OnDrawGizmos()
     {
@@ -59,12 +72,20 @@ public class ProceduralWalk : MonoBehaviour
     private void Update()
     {
         UpdateParam();
-        AdjustHeight();
-    }
 
+    }
+    private void LateUpdate()
+    {
+        AdjustHeight();
+        Quaternion shakeRotation =  LegRotationInfluence();
+        Quaternion accRotation = Quaternion.identity;
+        Quaternion bodyRotation = m_transform.localRotation;
+        hipTransform.rotation =shakeRotation* bodyRotation * hipInitialRotation;
+    }
     private void AdjustHeight()
     {
-        float height =( (airTime / airTimeMax) - 0.5f)* heightScale;
+        float influenceHeight =-Mathf.Cos(2*Mathf.PI /(period/legCount)*(sessionTime+firstlegTstall/2.0f) )* heightScale;
+        m_transform.position = new Vector3(m_transform.position.x, initialPosY+ influenceHeight, m_transform.position.z);
      }
 
     private void UpdateParam()
@@ -86,7 +107,7 @@ public class ProceduralWalk : MonoBehaviour
         float moveMin = period / 2f;
         float legMoveTime = Mathf.Lerp( moveMin, moveMax, speedLerp);
         float legMoveHight = Mathf.Lerp(minMoveHeight, maxMoveHeight, speedLerp);
-        airTime = Mathf.Lerp(0.03f, 0.1f, speedLerp);
+        airTime = Mathf.Lerp(0.03f, airTimeMax, speedLerp);
         foreach(ProceduralLeg leg in legsList)
         {
             leg.moveTime = legMoveTime;
@@ -166,6 +187,8 @@ public class ProceduralWalk : MonoBehaviour
                 m_state = BodyState.move;
                 sessionTime = 0.0f;
                 triggerLegIndex = CheckBestLeg(bodyPredict);
+                firstlegTstall =period- legsList[triggerLegIndex].moveTime;
+
             }
         }
 
@@ -237,4 +260,30 @@ public class ProceduralWalk : MonoBehaviour
         Vector3 noise = new Vector3(Mathf.PerlinNoise(Time.time * noise_speed, 0) - 0.5f, 0, Mathf.PerlinNoise(0, Time.time * noise_speed) - 0.5f);
        return  new Vector3(x, 0, z) + noise * noise_scale + testMovement;
     }
+
+
+    private Quaternion LegRotationInfluence()
+    {
+        Vector3 newUp = new Vector3(0,0,0);
+        foreach(ProceduralLeg leg in legsList)
+        {
+            float vh = leg.VirtualHeight* shakeInfluence;
+            Vector3 end = leg.newPos;
+            Vector3 legDir = new Vector3(end.x, m_transform.position.y + vh, end.z) - m_transform.position;
+            Vector3 dir1 = Vector3.Cross(legDir.normalized, Vector3.up);
+            Vector3 legUp = Vector3.Cross(dir1, legDir).normalized;
+            legUp = legUp.y < 0f ? -legUp : legUp;
+            newUp = newUp + legUp;
+        }
+        newUp = newUp/(float)legCount;
+        Quaternion newRotate = Quaternion.FromToRotation(Vector3.up, newUp);
+        if (showShaking) { Debug.DrawLine(m_transform.position, m_transform.position + newUp * 5, Color.gray, 100, true); }
+        return newRotate;
+
+        //hipTransform.rotation = newRotate * hipInitialRotation;
+    }
+
+
+
+    
 }
