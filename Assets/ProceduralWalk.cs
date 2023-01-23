@@ -48,7 +48,12 @@ public class ProceduralWalk : MonoBehaviour
     public float predicOffset = 0.0f;
     public float acc = 2.0f;
     public bool test = false;
+
     public bool showShaking = false;
+    public bool showSpeed = false;
+    public bool showPeriod = false;
+
+    public float initialHeight;
     //public Vector3 testV;
 
     private float firstlegTstall = 0.0f;
@@ -62,6 +67,15 @@ public class ProceduralWalk : MonoBehaviour
         initialCenterDis = GetCenterDis();
         stableRotationY = m_transform.eulerAngles.y;
         hipInitialRotation = hipTransform.rotation;
+
+        int layerMask = 1 << 6;
+        RaycastHit hit;
+        Vector3 rayStartpoint = m_transform.position + new Vector3(0, 10.0f, 0);
+        if (Physics.Raycast(rayStartpoint, new Vector3(0f, -1f, 0f), out hit, 20f, layerMask))
+        {
+            initialHeight = hit.distance;
+        }
+
     }
     private void OnDrawGizmos()
     {
@@ -76,7 +90,7 @@ public class ProceduralWalk : MonoBehaviour
     }
     private void LateUpdate()
     {
-        AdjustHeight();
+        //AdjustHeight();
         Quaternion shakeRotation =  LegRotationInfluence();
         Quaternion accRotation = Quaternion.identity;
         Quaternion bodyRotation = m_transform.localRotation;
@@ -178,7 +192,9 @@ public class ProceduralWalk : MonoBehaviour
         movement = Locomote();
         m_transform.Translate(movement * speed * Time.deltaTime);
         movementWorld = m_transform.TransformDirection(movement);
-        //float T1 = period - legsList[0].moveTime-legsList[0].moveTime;
+
+
+
         float predicTime = predicOffset + legsList[0].moveTime + (period - legsList[0].moveTime) / 2f;
         Vector3 bodyPredict = m_transform.position + movementWorld * speed * predicTime;
         if (m_state == BodyState.stall)
@@ -253,12 +269,23 @@ public class ProceduralWalk : MonoBehaviour
         {
             speed -= Time.deltaTime*acc;
         }
-        speed = Mathf.Clamp(speed, 1f, 9f);
+        speed = Mathf.Clamp(speed, minSpeed, maxSpeed);
         //control movement
         float x = Input.GetAxis("Horizontal");
         float z = Input.GetAxis("Vertical");
+
+        int layerMask = 1 << 6;
+        RaycastHit hit;
+        Vector3 rayStartpoint = m_transform.position + new Vector3(0, 10.0f, 0);
+        float newHeight = 0.0f;
+        if (Physics.Raycast(rayStartpoint, new Vector3(0f, -1f, 0f), out hit, 20f, layerMask))
+        {
+            newHeight = hit.distance;
+        }
+        float y = initialHeight - newHeight;
+        //m_transform.position = new Vector3(m_transform.position.x, m_transform.position.y -y , m_transform.position.z);
         Vector3 noise = new Vector3(Mathf.PerlinNoise(Time.time * noise_speed, 0) - 0.5f, 0, Mathf.PerlinNoise(0, Time.time * noise_speed) - 0.5f);
-       return  new Vector3(x, 0, z) + noise * noise_scale + testMovement;
+       return  new Vector3(x, y/3f, z) + noise * noise_scale + testMovement;
     }
 
 
