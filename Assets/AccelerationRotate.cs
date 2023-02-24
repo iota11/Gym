@@ -13,13 +13,10 @@ public class AccelerationRotate : MonoBehaviour
     public Vector3 ori_rotation;
     public int queueLength = 3;
     public float sensitive = 1f;
-    public bool active;
-    private Quaternion m_InitialRotation;
     void Start()
     {
         m_transform = GetComponent<Transform>();
         ori_rotation = m_transform.localEulerAngles;
-        m_InitialRotation = m_transform.localRotation;
         ori_pos = m_transform.position;
         pos_list = new Queue<Vector3>();
         vel_list = new Queue<Vector3>();
@@ -88,15 +85,8 @@ public class AccelerationRotate : MonoBehaviour
     {
 
         Vector3 acc_rotation = Vector3.Cross(avg_acc, new Vector3(0, 1, 0)).normalized * avg_acc.magnitude;
-
         //acc_rotation = new Vector3(acc_rotation.x, -acc_rotation.z, acc_rotation.y);
-        //m_transform.eulerAngles = m_transform.eulerAngles - acc_rotation * sensitive;
-        Quaternion cur_rotation = Quaternion.Euler(acc_rotation*sensitive);
-        if (active)
-        {
-            cur_rotation = Quaternion.Inverse(cur_rotation);
-        }
-        m_transform.localRotation = cur_rotation * m_InitialRotation;
+        m_transform.eulerAngles = m_transform.eulerAngles - acc_rotation * sensitive;
     }
     void ApplyRotation()
     {
