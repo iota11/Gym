@@ -466,7 +466,7 @@ MonoBehaviour:
   move_speed_hori: 80
   move_speed_ver: 50
   acc: 20
-  acc_sensitive: 10
+  acc_sensitive: 7
   acc_measure: {x: 0, y: 0, z: 0}
   noiseScale: 0
   anim: {fileID: 8004440680513104254}
@@ -481,6 +481,7 @@ MonoBehaviour:
   playSpeed: 0
   last_speed_hori: 0
   last_speed_ver: 0
+  up_force: 10
   accRotate: {x: 0, y: 0, z: 0}
 --- !u!4 &864362079
 Transform:
@@ -1471,7 +1472,7 @@ MonoBehaviour:
   m_Roots: []
   m_UpdateRate: 60
   m_UpdateMode: 3
-  m_Damping: 0.189
+  m_Damping: 0.127
   m_DampingDistrib:
     serializedVersion: 2
     m_Curve: []
