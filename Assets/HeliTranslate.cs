@@ -1,10 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using Unity.VisualScripting;
 using UnityEditor.Timeline.Actions;
 using UnityEngine;
-
-
+using UnityEngine.Rendering.HighDefinition;
 
 public class HeliTranslate : MonoBehaviour
 {
@@ -52,14 +52,18 @@ public class HeliTranslate : MonoBehaviour
     public Vector3 accRotate;
     private Quaternion initial_body_rotation;
     private float layer_weight = 0.0f;
-
-
+    private Quaternion idealRotation;
+    private float des_angle;
+    private float rotate_dive_x;
+    private float rotate_dive_y;
+    private float rotate_y_temp;
     void Start()
     {
         //anim.SetFloat("flySpeed", 10f);
         m_transform = GetComponent<Transform>();
         _fastNoise = new FastNoise();
         initial_body_rotation = body_transform.localRotation;
+        idealRotation = initial_body_rotation;
         m_flyState = FlyState.Stay;
         m_accState = AccState.Stable;
     }
@@ -74,7 +78,8 @@ public class HeliTranslate : MonoBehaviour
                 FlyNormal();
                 break;
             case FlyState.Drop:
-                FlyNormal();
+                //FlyNormal();
+                FlyDrop();
                 break;
             case FlyState.Climb:
                 FlyNormal();
@@ -89,32 +94,43 @@ public class HeliTranslate : MonoBehaviour
         float distance = dir.magnitude;
         //Debug.Log("dir is " + dir);
         float angle = Mathf.Abs(Mathf.Acos(Vector3.Dot(dir.normalized, new Vector3(0, 1, 0))) * Mathf.Rad2Deg);
-       // Debug.Log("angle is " + angle);
+        //Debug.Log("angle is " + angle);
         if ((0f < angle)&& (angle <30f) && distance > 10) {
             m_flyState = FlyState.Climb;
         }else if((30f<angle) && (150> angle) && (distance > stopDis)) {
             m_flyState = FlyState.Normal;
-        }else if((angle> 150f) &&(distance > 20f)) {
+        }else if((angle> 150f) &&(distance > 50f)) {
             m_flyState = FlyState.Drop;
         }else if(distance <= stopDis) {
             m_flyState = FlyState.Stay;
         } else {
             m_flyState = FlyState.Normal;
         }
-
+        des_angle = angle;
     }
 
     private void Stay() {
 
     }
     private void FlyNormal() {
-
+        anim.SetBool("is_diving", false);
         LocomoteHorizontal();
-        LocomoteVertical();
+        LocomoteVertical(acc, move_speed_ver);
         Veer();
         //ApplyNoise();
         CalAndUpdateForce();
         ApplyAccToBody();
+    }
+
+    private void FlyDrop()
+    {
+        LocomoteHorizontal();
+        LocomoteVertical(acc*2, move_speed_ver*10f);
+        CalAndUpdateForce();
+        ApplyAccToBody();
+        anim.SetBool("is_diving", true);
+        //Quaternion rotationDown = Quaternion.Euler(90f, 0f, 0f);
+        //body_transform.localRotation = rotationDown;
     }
     private void ApplyAccToBody()
     {
@@ -135,7 +151,13 @@ public class HeliTranslate : MonoBehaviour
             cur_rotateDeg = Mathf.Lerp(cur_rotateDeg, rotateDeg, 0.2f);
         }
         //cur_rotateDeg = rotateDeg;
-        Quaternion detlaRotationX = Quaternion.AngleAxis(cur_rotateDeg * 0.7f, new Vector3(1,0,0));
+        Quaternion detlaRotationX;
+        if (m_flyState == FlyState.Drop) {
+            rotate_dive_x = Mathf.Lerp(rotate_dive_x, des_angle, Time.deltaTime);
+        } else {
+            rotate_dive_x = Mathf.Lerp(rotate_dive_x, cur_rotateDeg * 0.7f, Time.deltaTime);
+        }
+        detlaRotationX = Quaternion.AngleAxis(Mathf.Clamp(rotate_dive_x, -90, 90), new Vector3(1, 0, 0));
 
 
         //veer acc rotation
@@ -144,16 +166,28 @@ public class HeliTranslate : MonoBehaviour
         {
             rotateDeg2 = -rotateDeg2;
         }
-        Quaternion detlaRotationZ = Quaternion.AngleAxis(cur_rotateDeg2, new Vector3(0, 0, 1));
-        if (Mathf.Abs(cur_rotateDeg2 - rotateDeg2) > 0.5f)
-        {
+        if (Mathf.Abs(cur_rotateDeg2 - rotateDeg2) > 0.5f) {
             cur_rotateDeg2 = Mathf.Lerp(cur_rotateDeg2, rotateDeg2, 0.1f);
         }
-        body_transform.localRotation =  initial_body_rotation * detlaRotationZ * detlaRotationX;
+        Quaternion detlaRotationZ = Quaternion.AngleAxis(cur_rotateDeg2, new Vector3(0, 0, 1));
+
+
+        if (m_flyState == FlyState.Drop) {
+            rotate_y_temp += - cur_speed_ver * Time.deltaTime * 7f;
+            //rotate_y_temp = rotate_y_temp % 360;
+            rotate_dive_y = Mathf.Lerp(rotate_dive_y, rotate_y_temp, Time.deltaTime);
+        } else {
+            rotate_y_temp = 0;
+            rotate_dive_y = Mathf.Lerp(rotate_dive_y, 0, Time.deltaTime);
+        }
+
+        Quaternion detlaRotationY = Quaternion.AngleAxis(rotate_dive_y, new Vector3(0, 1, 0));
+        body_transform.localRotation =  initial_body_rotation * detlaRotationY* detlaRotationZ * detlaRotationX;
+
 
         //apply playspeed
-        float up_factor = Mathf.Clamp((up_force - 10f) / 30f , -0.2f, 0.5f);
-        layer_weight =Mathf.Lerp(layer_weight,  Mathf.Clamp((15 - up_force) / 30f, 0f, 1f), 5*Time.deltaTime);
+        float up_factor = Mathf.Clamp((up_force - 10f) / 50f , -0.2f, 1f);
+        layer_weight =Mathf.Lerp(layer_weight,  Mathf.Clamp((15 - up_force) / 20f, 0f, 0.9f), 5*Time.deltaTime);
         playSpeed = Mathf.Clamp( Mathf.Abs(Mathf.Abs(cur_rotateDeg2)*0.6f + Mathf.Abs(cur_rotateDeg)) / 110f + 1f + up_factor, 0.7f, 3f);
         if(m_accState == AccState.SpeedDown) {
             playSpeed += 0.3f;
@@ -180,7 +214,6 @@ public class HeliTranslate : MonoBehaviour
     {
         acc_measure = Vector3.zero;
         acc_measure = (cur_speed_hori - last_speed_hori) /Time.deltaTime * m_transform.forward;
-        //acc_measure += (cur_speed_ver - last_speed_ver) * m_transform.up/Time.deltaTime;
         last_speed_hori = cur_speed_hori;
         last_speed_ver = cur_speed_ver;
     }
@@ -196,7 +229,7 @@ public class HeliTranslate : MonoBehaviour
                     cur_speed_hori -= Mathf.Clamp(cur_speed_hori/2 , 2*acc, acc*5)* Time.deltaTime;
                     m_accState = AccState.SpeedDown;
                 } else {
-                    cur_speed_hori = 3f;
+                    cur_speed_hori = 3f * Mathf.Clamp(distance.magnitude / (stopDis * 5), 0, 1);
                     m_accState = AccState.Stable;
                 }
             } else {
@@ -207,8 +240,6 @@ public class HeliTranslate : MonoBehaviour
                     m_accState = AccState.Stable;
                 }
             }
-           //float speedFactor = Mathf.Clamp( distance.magnitude / (stopDis*5), 0, 1);
-           //cur_speed_hori = cur_speed_hori * speedFactor;
             cur_vel_hori = m_transform.forward * cur_speed_hori;
         } else {
             //cur_speed_hori = 0f; //
@@ -216,7 +247,7 @@ public class HeliTranslate : MonoBehaviour
         m_transform.position += cur_vel_hori * Time.deltaTime;
 
     }
-    private void LocomoteVertical()
+    private void LocomoteVertical(float grav_acc, float speed_limit)
     {
         Vector3 distance = des_transfrom.position - m_transform.position;
         Vector3 distance2D = new Vector3(distance.x, 0, distance.z);
@@ -225,17 +256,26 @@ public class HeliTranslate : MonoBehaviour
         distance.z = 0;
         up_force =  10;
 
-        if (Mathf.Abs(distance.y) > stopDis * 4f) //acc
+        if (Mathf.Abs(distance.y) > stopDis * 4f) //acc or maintain
         {
-            if ((cur_speed_ver < move_speed_ver)||(Vector3.Dot(distance.normalized, cur_vel_ver) < 0f)) 
+            if ((cur_speed_ver < speed_limit) ||(Vector3.Dot(distance.normalized, cur_vel_ver) < 0f)) 
             {
-                cur_vel_ver += distance.normalized * acc * Time.deltaTime;
-                up_force = distance.normalized.y * acc +10;
+                m_accState = AccState.SpeedUp;
+                cur_vel_ver += distance.normalized * grav_acc * Time.deltaTime;
+                up_force = distance.normalized.y * grav_acc + 10;
+            }else if(cur_speed_ver > speed_limit) {  //is overspeeding
+                m_accState = AccState.SpeedDown;
+                cur_vel_ver -= cur_vel_ver.normalized * Mathf.Clamp((cur_vel_ver.magnitude/speed_limit-1f)*30f, 0, 10f) * grav_acc * Time.deltaTime;
+                up_force = 10f - cur_vel_ver.normalized.y * Mathf.Clamp((cur_vel_ver.magnitude / speed_limit - 1f) * 10f, 0, 4f) * grav_acc;
             }
         } else {
             if ((cur_speed_ver > 2f) ) {
-                cur_vel_ver -= cur_vel_ver.normalized * Mathf.Clamp(cur_vel_ver.magnitude, 0, 4f)*acc * Time.deltaTime;
-                up_force  = 10f -cur_vel_ver.normalized.y * Mathf.Clamp(cur_vel_ver.magnitude, 0, 4f) * acc;
+                m_accState = AccState.SpeedDown;
+                cur_vel_ver -= cur_vel_ver.normalized * Mathf.Clamp(cur_vel_ver.magnitude/10f, 0, 4f)* grav_acc * Time.deltaTime;
+                up_force  = 10f -cur_vel_ver.normalized.y * Mathf.Clamp(cur_vel_ver.magnitude/10f, 0, 4f) * grav_acc;
+            } else {
+                m_accState = AccState.Stable;
+                cur_vel_ver = cur_vel_ver * Mathf.Clamp(distance.magnitude / (stopDis * 2), 0, 1);
             }
         }
         cur_speed_ver = cur_vel_ver.magnitude;
@@ -247,7 +287,7 @@ public class HeliTranslate : MonoBehaviour
     {
         Vector3 distance = des_transfrom.position - m_transform.position;
         distance.y = 0;
-        if (distance.magnitude > stopDis)
+        if (distance.magnitude > stopDis*2)
         {
             Vector3 targetDir = des_transfrom.position - m_transform.position;
             targetDir.y = 0;
@@ -256,7 +296,7 @@ public class HeliTranslate : MonoBehaviour
             Vector3 veerAxis = Vector3.Cross(targetDir.normalized, m_transform.forward);
             Vector3 newVelDir =Quaternion.AngleAxis( - angle * Time.deltaTime * rotate_speed, veerAxis) * m_transform.forward;
             accRotate = (newVelDir.normalized - m_transform.forward) * cur_speed_hori;
-            if (Mathf.Abs(angle) > 5f) {
+            if (Mathf.Abs(angle) > 0.1f) {
                 m_transform.RotateAround(m_transform.position, veerAxis, -angle * Time.deltaTime * rotate_speed);
             }
         }
