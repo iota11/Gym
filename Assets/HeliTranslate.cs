@@ -193,7 +193,7 @@ public class HeliTranslate : MonoBehaviour
             playSpeed += 0.3f;
         }
         anim.SetFloat( "flySpeed", playSpeed);
-        anim.SetLayerWeight(1, layer_weight);
+        anim.SetLayerWeight(1, layer_weight-0.6f);
     }
 
     private void ApplyNoise()
